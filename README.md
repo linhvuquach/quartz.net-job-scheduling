@@ -61,11 +61,11 @@ public class SimpleJob : IJob
 ### The Configuration (`Program.cs`)
 1. **Register Quartz services** with dependency injection
 2. **Create JobDetail** for our SimpleJob
-3. **Create Trigger** that runs every 10 seconds using cron expression
+3. **Create Trigger** that runs every Monday at 9:00 AM using cron expression
 4. **Start the scheduler** as a hosted service
 
 ### The Cron Expression
-- `*/10 * * * * ?` = Every 10 seconds
+- `0 0 9 ? * MON` = Every Monday at 9:00 AM
 - Format: `second minute hour day-of-month month day-of-week year`
 
 ## 🎯 Available Endpoints
@@ -76,13 +76,37 @@ Once running, you can interact with the scheduler via HTTP endpoints:
 ```bash
 GET http://localhost:5000/jobs/status
 ```
-Returns information about the job and its triggers.
+Returns information about the job and its triggers, including trigger state, next/previous fire times.
 
 ### Manually Trigger Job
 ```bash
 POST http://localhost:5000/jobs/trigger
 ```
 Executes the job immediately, outside of its normal schedule.
+
+### Reschedule Job for Tomorrow
+```bash
+POST http://localhost:5000/jobs/reschedule-tomorrow
+```
+Reschedules the job to run tomorrow at 9:00 AM. Demonstrates how to dynamically change a job's schedule.
+
+### Pause Job
+```bash
+POST http://localhost:5000/jobs/pause
+```
+Pauses the job, preventing all associated triggers from firing. The job remains in the scheduler but won't execute until resumed.
+
+### Resume Job
+```bash
+POST http://localhost:5000/jobs/resume
+```
+Resumes a previously paused job. Triggers will fire according to their schedule again.
+
+### Delete Job
+```bash
+DELETE http://localhost:5000/jobs/delete
+```
+Permanently removes the job and all its associated triggers from the scheduler.
 
 ## 🏃‍♂️ Running the Application
 
@@ -101,7 +125,7 @@ Executes the job immediately, outside of its normal schedule.
    dotnet run
    ```
 
-4. **Watch the logs**: You'll see job executions every 10 seconds:
+4. **Watch the logs**: You'll see job executions every Monday at 9:00 AM, or when manually triggered:
    ```
    === JOB EXECUTION STARTED ===
    Job: DEFAULT.SimpleJob executed at [timestamp]
@@ -109,6 +133,8 @@ Executes the job immediately, outside of its normal schedule.
    Job completed successfully!
    === JOB EXECUTION FINISHED ===
    ```
+
+5. **Access Swagger UI**: Navigate to `http://localhost:5000/swagger` to test all endpoints interactively.
 
 ## 📚 Key Benefits of Quartz.NET
 

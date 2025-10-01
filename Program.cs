@@ -82,16 +82,16 @@ app.MapGet("/jobs/status", async (ISchedulerFactory schedulerFactory) =>
 app.MapPost("/jobs/reschedule-tomorrow", async (ISchedulerFactory schedulerFactory) =>
 {
     var scheduler = await schedulerFactory.GetScheduler();
-    
+
     // Get the existing trigger
     var triggerKey = new TriggerKey("SimpleJob-trigger");
     var existingTrigger = await scheduler.GetTrigger(triggerKey);
-    
+
     if (existingTrigger == null)
     {
         return Results.NotFound(new { message = "Trigger not found" });
     }
-    
+
     // Create a new trigger for tomorrow at 9:00 AM
     var tomorrow = DateTime.Today.AddDays(1).AddHours(9);
     var newTrigger = TriggerBuilder.Create()
@@ -100,12 +100,12 @@ app.MapPost("/jobs/reschedule-tomorrow", async (ISchedulerFactory schedulerFacto
         .StartAt(tomorrow)
         .WithDescription($"Trigger for SimpleJob rescheduled to run tomorrow at {tomorrow:yyyy-MM-dd HH:mm}")
         .Build();
-    
+
     // Replace the existing trigger
     await scheduler.RescheduleJob(triggerKey, newTrigger);
-    
-    return Results.Ok(new 
-    { 
+
+    return Results.Ok(new
+    {
         message = "Job rescheduled successfully",
         jobKey = jobKey.ToString(),
         newSchedule = tomorrow,
@@ -113,6 +113,62 @@ app.MapPost("/jobs/reschedule-tomorrow", async (ISchedulerFactory schedulerFacto
     });
 })
 .WithName("RescheduleJobTomorrow")
+.WithOpenApi();
+
+app.MapPost("/jobs/pause", async (ISchedulerFactory schedulerFactory) =>
+{
+    var scheduler = await schedulerFactory.GetScheduler();
+
+    // Pause the job - this prevents all triggers associated with the job from firing
+    await scheduler.PauseJob(jobKey);
+
+    return Results.Ok(new
+    {
+        message = "Job paused successfully",
+        jobKey = jobKey.ToString(),
+        description = "The job will not execute until it is resumed"
+    });
+})
+.WithName("PauseJob")
+.WithOpenApi();
+
+app.MapPost("/jobs/resume", async (ISchedulerFactory schedulerFactory) =>
+{
+    var scheduler = await schedulerFactory.GetScheduler();
+
+    // Resume the job - this allows triggers to fire again
+    await scheduler.ResumeJob(jobKey);
+
+    return Results.Ok(new
+    {
+        message = "Job resumed successfully",
+        jobKey = jobKey.ToString(),
+        description = "The job will now execute according to its schedule"
+    });
+})
+.WithName("ResumeJob")
+.WithOpenApi();
+
+app.MapDelete("/jobs/delete", async (ISchedulerFactory schedulerFactory) =>
+{
+    var scheduler = await schedulerFactory.GetScheduler();
+
+    // Delete the job - this removes the job and all its triggers from the scheduler
+    var deleted = await scheduler.DeleteJob(jobKey);
+
+    if (!deleted)
+    {
+        return Results.NotFound(new { message = "Job not found or already deleted" });
+    }
+
+    return Results.Ok(new
+    {
+        message = "Job deleted successfully",
+        jobKey = jobKey.ToString(),
+        description = "The job and all its triggers have been permanently removed from the scheduler"
+    });
+})
+.WithName("DeleteJob")
 .WithOpenApi();
 
 app.Run();
